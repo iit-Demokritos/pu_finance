@@ -1,0 +1,96 @@
+import tqdm
+import os
+import numpy as np
+import time
+import pandas as pd
+
+from pu_finance.utils import load_data_one_year
+from pu_finance.metrics import get_ranking_scores
+
+from sklearn.model_selection import train_test_split
+
+
+from catboost import CatBoostClassifier
+
+
+### SETTINGS ###
+
+# for reproducibility
+random_state = 42
+# use metadata?
+use_metadata = True
+###################
+
+
+# path to save results
+path_to_save_res = os.path.abspath("./results/catboost_baseline_meta.csv")
+# path to load data
+base_data_dir = os.path.abspath("./data")
+
+
+if use_metadata:
+    cat_features = [0, 1, 2]
+    drop_nan = True
+else:
+    cat_features = []
+    drop_nan = False
+
+# iterate over splits
+results = []
+for folder in tqdm.tqdm(os.listdir(base_data_dir)):
+    full_path = os.path.join(base_data_dir, folder)
+    X_train, X_test, y_train, y_test = load_data_one_year(
+        full_path, use_metadata=use_metadata, drop_nan=drop_nan
+    )
+
+    # use this for early stopping
+    cur_X_train, cur_X_val, cur_y_train, cur_y_val = train_test_split(
+        X_train, y_train, test_size=0.1, stratify=y_train, random_state=random_state
+    )
+
+    clf = CatBoostClassifier(
+        # these are CIK, SIC, State of Inc
+        cat_features=cat_features,
+        early_stopping_rounds=100,
+        scale_pos_weight=2,
+        thread_count=10,
+        # no verbose and logs
+        allow_writing_files=False,
+        verbose=False,
+        # reproducibility
+        random_seed=random_state,
+    )
+
+    clf.fit(cur_X_train, cur_y_train, eval_set=(cur_X_val, cur_y_val), verbose=0)
+
+    # Fit + Generate predictions (timed)
+    time_s = time.time()
+
+    clf.fit(X_train, y_train)
+    y_test_proba = clf.predict_proba(X_test)[:, 1]
+
+    time_e = time.time() - time_s
+
+    # Get results
+    metrics = get_ranking_scores(y_test, y_test_proba)
+    cur_res = {
+        "split": int(folder.split("_")[1]),
+        "num_train": y_train.shape[0],
+        "num_pos_train": y_train.sum(),
+        "num_test": y_test.shape[0],
+        "num_pos_test": y_test.sum(),
+        "time": time_e,
+    }
+    cur_res.update(metrics)
+    results.append(cur_res)
+
+
+# Save and Print results
+df_res = pd.DataFrame(results, columns=cur_res.keys())
+df_res.sort_values("split", inplace=True)
+df_res.to_csv(
+    path_to_save_res,
+    index=False,
+)
+
+print(f"\nCatBoost Average scores: \n{df_res[metrics.keys()].mean().to_string()}")

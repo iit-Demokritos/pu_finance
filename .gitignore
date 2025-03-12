@@ -36,3 +36,6 @@ venv
 # Others
 out_models
 output
+
+# catboost
+*/catboost_info
