@@ -48,11 +48,23 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
         X_train, y_train, test_size=0.1, stratify=y_train, random_state=random_state
     )
 
+    # You can change this @izavits to use focal loss
+    # Use scale_pos_weight = None, as this attribute is only for Logloss
+    # loss = "Focal:focal_alpha=0.99;focal_gamma=5"
+    # scale_pos_weight = None
+
+    # This is the Default
+    loss = "Logloss"
+    scale_pos_weight = 2
+
     clf = CatBoostClassifier(
         # these are CIK, SIC, State of Inc
         cat_features=cat_features,
+        # the loss function to use. Default is 'Logloss'.
+        loss_function=loss,
+        scale_pos_weight=scale_pos_weight,
+        # for early stopping
         early_stopping_rounds=100,
-        scale_pos_weight=2,
         thread_count=10,
         # no verbose and logs
         allow_writing_files=False,
@@ -66,7 +78,6 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
     # Fit + Generate predictions (timed)
     time_s = time.time()
 
-    clf.fit(X_train, y_train)
     y_test_proba = clf.predict_proba(X_test)[:, 1]
 
     time_e = time.time() - time_s
