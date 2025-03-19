@@ -21,12 +21,12 @@ from sklearn.preprocessing import OneHotEncoder
 # for reproducibility
 random_state = 42
 # use metadata?
-use_metadata = True
+use_metadata = False
 
 ###################
 
 # path to save results
-path_to_save_res = os.path.abspath("./results/lr_baseline_meta.csv")
+path_to_save_res = os.path.abspath("./results/lr_baseline.csv")
 # path to load data
 base_data_dir = os.path.abspath("./data")
 
