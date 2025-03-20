@@ -1,0 +1,2 @@
+split,num_train,num_pos_train,num_test,num_pos_test,time,average_precision,ndcg-precision,rec-precision,f1
+2010,8133,112,2667,71,9.363119840621948,0.10374179812360991,0.18498859719301197,0.14084507042253522,0.18604651162790697
