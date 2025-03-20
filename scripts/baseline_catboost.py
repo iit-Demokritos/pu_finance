@@ -8,7 +8,8 @@ from pu_finance.utils import load_data_one_year
 from pu_finance.metrics import get_ranking_scores
 
 from sklearn.model_selection import train_test_split
-
+from sklearn.metrics import f1_score
+from sklearn.tree import DecisionTreeClassifier
 
 from catboost import CatBoostClassifier
 
@@ -23,7 +24,7 @@ use_metadata = True
 
 
 # path to save results
-path_to_save_res = os.path.abspath("./results/catboost_baseline_meta.csv")
+path_to_save_res = os.path.abspath("./results/catboost_baseline_meta_noCIK.csv")
 # path to load data
 base_data_dir = os.path.abspath("./data")
 
@@ -48,11 +49,23 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
         X_train, y_train, test_size=0.1, stratify=y_train, random_state=random_state
     )
 
+    # You can change this @izavits to use focal loss
+    # Use scale_pos_weight = None, as this attribute is only for Logloss
+    # loss = "Focal:focal_alpha=0.25;focal_gamma=3"
+    # scale_pos_weight = None
+
+    # This is the Default
+    loss = "Logloss"
+    scale_pos_weight = 2
+
     clf = CatBoostClassifier(
         # these are CIK, SIC, State of Inc
         cat_features=cat_features,
+        # the loss function to use. Default is 'Logloss'.
+        loss_function=loss,
+        scale_pos_weight=scale_pos_weight,
+        # for early stopping
         early_stopping_rounds=100,
-        scale_pos_weight=2,
         thread_count=10,
         # no verbose and logs
         allow_writing_files=False,
@@ -66,13 +79,16 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
     # Fit + Generate predictions (timed)
     time_s = time.time()
 
-    clf.fit(X_train, y_train)
+    # Optimal threshold
     y_test_proba = clf.predict_proba(X_test)[:, 1]
+    dt_discr = DecisionTreeClassifier(random_state=42, max_depth=1)
+    dt_discr.fit(clf.predict_proba(cur_X_val)[:, 1].reshape(-1, 1), cur_y_val)
+    opt_threshold = dt_discr.tree_.threshold[0]
 
     time_e = time.time() - time_s
 
     # Get results
-    metrics = get_ranking_scores(y_test, y_test_proba)
+    metrics = get_ranking_scores(y_test, y_test_proba, threshold=opt_threshold)
     cur_res = {
         "split": int(folder.split("_")[1]),
         "num_train": y_train.shape[0],
@@ -83,7 +99,7 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
     }
     cur_res.update(metrics)
     results.append(cur_res)
-
+    # break
 
 # Save and Print results
 df_res = pd.DataFrame(results, columns=cur_res.keys())
@@ -93,4 +109,4 @@ df_res.to_csv(
     index=False,
 )
 
-print(f"\nCatBoost Average scores: \n{df_res[metrics.keys()].mean().to_string()}")
+print(f"\nCatBoost Average scores: \n{df_res[list(metrics.keys())].mean().to_string()}")

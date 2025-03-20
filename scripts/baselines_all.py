@@ -11,9 +11,9 @@ from pu_finance.metrics import get_ranking_scores
 from sklearn.linear_model import LogisticRegression
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import make_column_transformer
-from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import train_test_split
 
 from imblearn.ensemble import RUSBoostClassifier
 from catboost import CatBoostClassifier
@@ -30,7 +30,7 @@ use_metadata = True
 ###################
 
 # path to save results
-path_to_save_res = os.path.abspath("./results/baselines_avg_meta.csv")
+path_to_save_res = os.path.abspath("./results/baselines_avg_meta_noCIK.csv")
 # path to load data
 base_data_dir = os.path.abspath("./data")
 
@@ -106,7 +106,20 @@ for model_name, clf in models.items():
         )
         # Fit + Generate predictions (timed)
 
-        clf.fit(X_train, y_train)
+        if model_name == "CatBoost":
+            # use this for early stopping
+            cur_X_train, cur_X_val, cur_y_train, cur_y_val = train_test_split(
+                X_train,
+                y_train,
+                test_size=0.1,
+                stratify=y_train,
+                random_state=random_state,
+            )
+            clf.fit(
+                cur_X_train, cur_y_train, eval_set=(cur_X_val, cur_y_val), verbose=0
+            )
+        else:
+            clf.fit(X_train, y_train)
         y_test_proba = clf.predict_proba(X_test)[:, 1]
 
         metrics = get_ranking_scores(y_test, y_test_proba)

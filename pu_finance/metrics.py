@@ -2,7 +2,27 @@ from __future__ import annotations
 
 import numpy as np
 from typing import Literal
-from sklearn.metrics import ndcg_score, average_precision_score
+from sklearn.metrics import ndcg_score, average_precision_score, f1_score
+
+
+def get_f1_at_threshold(
+    y_true: np.ndarray,
+    y_probas: np.ndarray,
+    threshold: float = 0.5,
+) -> float:
+    """Generate ndcg at k depth. Simple wrapper around sklearn to facilitate the
+       at precision value.
+
+    Args:
+        y_true (np.ndarray): {0,1} vector of labels.
+        y_probas (np.ndarray): float vector of probabilities for the positive label.
+        threshold (float, optional): Threshold for F1. Defaults to 0.5
+
+    Returns:
+        float: F1 of positive class
+    """
+    y_pred = (y_probas > threshold).astype(int)
+    return f1_score(y_true, y_pred, average="binary")
 
 
 def ndcg_at_k(
@@ -82,6 +102,7 @@ def get_ranking_scores(
     y_true: np.ndarray,
     y_probas: np.ndarray,
     k: Literal["precision"] | int | float = "precision",
+    threshold: float = 0.5,
 ) -> dict[str, float]:
     """Wrapper to get ranking scores together.
 
@@ -93,6 +114,7 @@ def get_ranking_scores(
                            - If float, it is interpreted as k% of the len(y_true)
                            - If "precision", it is recall-precision
                            Defaults to "precision".
+        threshold (float, optional): Threshold for F1. Defaults to 0.5
 
     Returns:
         dict[str, float]:
@@ -101,4 +123,5 @@ def get_ranking_scores(
     res["average_precision"] = average_precision_score(y_true, y_probas)
     res["ndcg-precision"] = ndcg_at_k(y_true, y_probas)
     res["rec-precision"] = rec_at_k(y_true, y_probas)
+    res["f1"] = get_f1_at_threshold(y_true, y_probas, threshold=threshold)
     return res
