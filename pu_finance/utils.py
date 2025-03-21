@@ -56,7 +56,7 @@ METADATA_TO_USE: list[str] = [
 
 def load_data_one_year(
     path_to_file: str,
-    use_metadata: bool = False,
+    metadata_to_use: list[str] = METADATA_TO_USE,
     drop_nan: bool = False,
     target_col: str = "Misstatement",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
@@ -64,7 +64,8 @@ def load_data_one_year(
 
     Args:
         path_to_file (str): Path to split folder (i.e. split_2010)
-        use_metadata (bool, optional): Whether to keep company metadata. Defaults to False.
+        metadata_to_use (list[str], optional): Which metadata to use. They will be put first in the feature vector.
+                                    Defaults to ["CIK", "SIC", "State of Inc"].
         drop_nan (bool, optional): Whether to drop any sample with nan data. Defaults to False.
         target_col (str, optional): Target column to use. Defaults to "Misstatement".
     Returns:
@@ -78,7 +79,7 @@ def load_data_one_year(
     df_test[["CIK", "SIC"]] = df_test[["CIK", "SIC"]].astype(int)
 
     to_keep = FINANCIAL_FEATURES
-    if use_metadata:
+    if metadata_to_use:
         to_keep = METADATA_TO_USE + FINANCIAL_FEATURES
 
     train = df_train[to_keep + [target_col]]

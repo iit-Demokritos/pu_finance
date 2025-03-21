@@ -23,25 +23,23 @@ from catboost import CatBoostClassifier
 
 # for reproducibility
 random_state = 42
-# use metadata?
-use_metadata = True
 
+# which metadata to use
+metadata_to_use = ["CIK", "SIC", "State of Inc"]
+
+# drop rows with any NaN in train+test?
+# If we use meta-data have this as true for the time being
+# because many companies have no State for example
+drop_nan = True
 
 ###################
 
 # path to save results
-path_to_save_res = os.path.abspath("./results/baselines_avg_meta_noCIK.csv")
+path_to_save_res = os.path.abspath("./results/baselines_avg_meta.csv")
 # path to load data
 base_data_dir = os.path.abspath("./data")
 
-if use_metadata:
-    # We need to drop for simple impute to work?
-    cat_features = [0, 1, 2]
-    drop_nan = True
-else:
-    cat_features = []
-    drop_nan = False
-
+cat_features = list(range(len(metadata_to_use)))
 
 models = {
     "LR": Pipeline(
@@ -75,23 +73,23 @@ models = {
         # reproducibility
         random_seed=random_state,
     ),
-    "RusBoost": Pipeline(
-        [
-            (
-                "tr",
-                make_column_transformer(
-                    [OneHotEncoder(handle_unknown="ignore"), cat_features],
-                    remainder="passthrough",
-                ),
-            ),
-            ("imp", SimpleImputer(strategy="mean")),
-            ("sc", StandardScaler(with_mean=False)),
-            (
-                "clf",
-                RUSBoostClassifier(random_state=random_state, algorithm="SAMME"),
-            ),
-        ]
-    ),
+    # "RusBoost": Pipeline(
+    #     [
+    #         (
+    #             "tr",
+    #             make_column_transformer(
+    #                 [OneHotEncoder(handle_unknown="ignore"), cat_features],
+    #                 remainder="passthrough",
+    #             ),
+    #         ),
+    #         ("imp", SimpleImputer(strategy="mean")),
+    #         ("sc", StandardScaler(with_mean=False)),
+    #         (
+    #             "clf",
+    #             RUSBoostClassifier(random_state=random_state, algorithm="SAMME"),
+    #         ),
+    #     ]
+    # ),
 }
 
 results_all = []
@@ -102,7 +100,7 @@ for model_name, clf in models.items():
     for folder in tqdm.tqdm(os.listdir(base_data_dir)):
         full_path = os.path.join(base_data_dir, folder)
         X_train, X_test, y_train, y_test = load_data_one_year(
-            full_path, use_metadata=use_metadata, drop_nan=drop_nan
+            full_path, metadata_to_use=metadata_to_use, drop_nan=drop_nan
         )
         # Fit + Generate predictions (timed)
 
