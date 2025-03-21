@@ -19,7 +19,7 @@ from catboost import CatBoostClassifier
 # for reproducibility
 random_state = 42
 # which metadata to use
-metadata_to_use = ["CIK", "SIC", "State of Inc"]
+metadata_to_use = ["SIC", "State of Inc"]
 # drop rows with any NaN in train+test?
 # If we use meta-data have this as true for the time being
 # because many companies have no State for example

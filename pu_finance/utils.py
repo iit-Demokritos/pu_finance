@@ -78,9 +78,7 @@ def load_data_one_year(
     df_test = pd.read_csv(os.path.join(path_to_file, "test_instances.csv"))
     df_test[["CIK", "SIC"]] = df_test[["CIK", "SIC"]].astype(int)
 
-    to_keep = FINANCIAL_FEATURES
-    if metadata_to_use:
-        to_keep = METADATA_TO_USE + FINANCIAL_FEATURES
+    to_keep = metadata_to_use + FINANCIAL_FEATURES
 
     train = df_train[to_keep + [target_col]]
     test = df_test[to_keep + [target_col]]
