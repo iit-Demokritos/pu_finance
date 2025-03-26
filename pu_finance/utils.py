@@ -1,8 +1,11 @@
 import pandas as pd
 import numpy as np
 import os
+from typing import List
+from typing import Tuple
 
-FINANCIAL_FEATURES: list[str] = [
+
+FINANCIAL_FEATURES: List[str] = [
     "act",
     "ap",
     "at",
@@ -47,7 +50,7 @@ FINANCIAL_FEATURES: list[str] = [
 ]
 
 
-METADATA_TO_USE: list[str] = [
+METADATA_TO_USE: List[str] = [
     "CIK",
     "SIC",
     "State of Inc",
@@ -56,10 +59,10 @@ METADATA_TO_USE: list[str] = [
 
 def load_data_one_year(
     path_to_file: str,
-    metadata_to_use: list[str] = METADATA_TO_USE,
+    metadata_to_use: List[str] = METADATA_TO_USE,
     drop_nan: bool = False,
     target_col: str = "Misstatement",
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Loader of train, test instances from original split by Ilias.
 
     Args:
@@ -78,9 +81,7 @@ def load_data_one_year(
     df_test = pd.read_csv(os.path.join(path_to_file, "test_instances.csv"))
     df_test[["CIK", "SIC"]] = df_test[["CIK", "SIC"]].astype(int)
 
-    to_keep = FINANCIAL_FEATURES
-    if metadata_to_use:
-        to_keep = METADATA_TO_USE + FINANCIAL_FEATURES
+    to_keep = metadata_to_use + FINANCIAL_FEATURES
 
     train = df_train[to_keep + [target_col]]
     test = df_test[to_keep + [target_col]]
