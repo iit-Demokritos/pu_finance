@@ -12,3 +12,9 @@ For each test year the training instances are from 3 years back (e.g. 2000-2002)
 For each test year, the test instances are labeled without label noise (i.e., without flipping labels for unknown misstatements).
 For the corresponding training instances, positives examples that are supposed to be uknown at the time of training have been flipped to negative.
 Thus, for each training set, there are hidden positives into the negatives. The hidden positives are those having restatement date past the time of training.
+
+## Install
+### Setup Cython and compile
+- pip install the requirements
+- use setup.py to compile Cython files
+
