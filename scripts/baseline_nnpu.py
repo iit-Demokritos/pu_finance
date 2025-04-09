@@ -63,9 +63,9 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
                 "clf",
                 PU_MLP(
                     hidden_dims=[40, 10],
-                    max_epochs=100,
+                    max_epochs=500,
                     learning_rate=1e-4,
-                    patience=50,
+                    patience=25,
                     random_state=random_state,
                     nnPU=True,
                     verbose=True,

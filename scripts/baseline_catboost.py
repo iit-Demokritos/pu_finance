@@ -50,12 +50,12 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
 
     # You can change this @izavits to use focal loss
     # Use scale_pos_weight = None, as this attribute is only for Logloss
-    # loss = "Focal:focal_alpha=0.25;focal_gamma=3"
-    # scale_pos_weight = None
+    loss = "Focal:focal_alpha=0.75;focal_gamma=1"
+    scale_pos_weight = None
 
-    # This is the Default
-    loss = "Logloss"
-    scale_pos_weight = 2
+    # # This is the Default
+    # loss = "Logloss"
+    # scale_pos_weight = 2
 
     clf = CatBoostClassifier(
         # these are CIK, SIC, State of Inc
@@ -71,6 +71,7 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
         verbose=False,
         # reproducibility
         random_seed=random_state,
+        task_type="CPU",
     )
 
     clf.fit(cur_X_train, cur_y_train, eval_set=(cur_X_val, cur_y_val), verbose=0)

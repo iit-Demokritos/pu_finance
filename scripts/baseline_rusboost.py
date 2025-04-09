@@ -59,7 +59,9 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
             ("sc", StandardScaler(with_mean=False)),
             (
                 "clf",
-                RUSBoostClassifier(random_state=random_state, algorithm="SAMME"),
+                RUSBoostClassifier(
+                    random_state=random_state, algorithm="SAMME", n_estimators=500
+                ),
             ),
         ]
     )

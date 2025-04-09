@@ -6,6 +6,7 @@ import pandas as pd
 
 from pu_finance.utils import load_data_one_year
 from pu_finance.metrics import get_ranking_scores
+from pu_finance.pu_model import PU_MLP, Denser
 
 
 from sklearn.linear_model import LogisticRegression
@@ -25,7 +26,7 @@ from catboost import CatBoostClassifier
 random_state = 42
 
 # which metadata to use
-metadata_to_use = ["CIK", "SIC", "State of Inc"]
+metadata_to_use = []  # ["SIC", "State of Inc"]
 
 # drop rows with any NaN in train+test?
 # If we use meta-data have this as true for the time being
@@ -35,7 +36,7 @@ drop_nan = True
 ###################
 
 # path to save results
-path_to_save_res = os.path.abspath("./results/baselines_avg_meta.csv")
+path_to_save_res = os.path.abspath("./results/true_baselines_avg_fin_and_name.csv")
 # path to load data
 base_data_dir = os.path.abspath("./data")
 
@@ -61,11 +62,11 @@ models = {
             ),
         ]
     ),
-    "CatBoost": CatBoostClassifier(
+    "CatBoost_Focal": CatBoostClassifier(
         # these are CIK, SIC, State of Inc
+        loss_function="Focal:focal_alpha=0.25;focal_gamma=2",
         cat_features=cat_features,
         early_stopping_rounds=100,
-        scale_pos_weight=2,
         thread_count=10,
         # no verbose and logs
         allow_writing_files=False,
@@ -73,6 +74,18 @@ models = {
         # reproducibility
         random_seed=random_state,
     ),
+    # "CatBoost_Focal_0.75_1": CatBoostClassifier(
+    #     # these are CIK, SIC, State of Inc
+    #     loss_function="Focal:focal_alpha=0.75;focal_gamma=1",
+    #     cat_features=cat_features,
+    #     early_stopping_rounds=100,
+    #     thread_count=10,
+    #     # no verbose and logs
+    #     allow_writing_files=False,
+    #     verbose=False,
+    #     # reproducibility
+    #     random_seed=random_state,
+    # ),
     # "RusBoost": Pipeline(
     #     [
     #         (
@@ -86,7 +99,63 @@ models = {
     #         ("sc", StandardScaler(with_mean=False)),
     #         (
     #             "clf",
-    #             RUSBoostClassifier(random_state=random_state, algorithm="SAMME"),
+    #             RUSBoostClassifier(
+    #                 random_state=random_state, algorithm="SAMME", n_estimators=500
+    #             ),
+    #         ),
+    #     ]
+    # ),
+    # "uPU": Pipeline(
+    #     [
+    #         (
+    #             "tr",
+    #             make_column_transformer(
+    #                 [OneHotEncoder(handle_unknown="ignore"), cat_features],
+    #                 remainder="passthrough",
+    #             ),
+    #         ),
+    #         ("imp", SimpleImputer(strategy="mean")),
+    #         ("sc", StandardScaler(with_mean=False)),
+    #         ("denser", Denser()),
+    #         (
+    #             "clf",
+    #             PU_MLP(
+    #                 hidden_dims=[40, 10],
+    #                 max_epochs=500,
+    #                 learning_rate=1e-4,
+    #                 patience=25,
+    #                 random_state=random_state,
+    #                 nnPU=False,
+    #                 verbose=True,
+    #                 prior=0.01,
+    #             ),
+    #         ),
+    #     ]
+    # ),
+    # "nnPU": Pipeline(
+    #     [
+    #         (
+    #             "tr",
+    #             make_column_transformer(
+    #                 [OneHotEncoder(handle_unknown="ignore"), cat_features],
+    #                 remainder="passthrough",
+    #             ),
+    #         ),
+    #         ("imp", SimpleImputer(strategy="mean")),
+    #         ("sc", StandardScaler(with_mean=False)),
+    #         ("denser", Denser()),
+    #         (
+    #             "clf",
+    #             PU_MLP(
+    #                 hidden_dims=[40, 10],
+    #                 max_epochs=500,
+    #                 learning_rate=1e-4,
+    #                 patience=25,
+    #                 random_state=random_state,
+    #                 nnPU=True,
+    #                 verbose=True,
+    #                 prior=0.01,
+    #             ),
     #         ),
     #     ]
     # ),
@@ -117,6 +186,8 @@ for model_name, clf in models.items():
                 cur_X_train, cur_y_train, eval_set=(cur_X_val, cur_y_val), verbose=0
             )
         else:
+            if "PU" in model_name:
+                clf.steps[-1][1].prior = np.mean(y_train)
             clf.fit(X_train, y_train)
         y_test_proba = clf.predict_proba(X_test)[:, 1]
 
@@ -134,13 +205,12 @@ for model_name, clf in models.items():
     results_all.append(
         {"model": model_name, "time": time_e, **df_res[metrics.keys()].mean().to_dict()}
     )
+    # Save it during iterations as well
+    df_res = pd.DataFrame(results_all, columns=["model", "time"] + list(metrics.keys()))
+    df_res.sort_values("average_precision", inplace=True)
+    df_res.to_csv(
+        path_to_save_res,
+        index=False,
+    )
 
-
-# Save and Print results
-df_res = pd.DataFrame(results_all, columns=["model", "time"] + list(metrics.keys()))
-df_res.sort_values("average_precision", inplace=True)
-df_res.to_csv(
-    path_to_save_res,
-    index=False,
-)
 print(f"\nALL Average scores: \n{df_res.to_string()}")

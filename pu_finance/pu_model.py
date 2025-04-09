@@ -19,7 +19,11 @@ class Denser(TransformerMixin):
         return self
 
     def transform(self, X):
-        return X.toarray()
+        try:
+            dense_array = X.toarray()
+        except AttributeError:
+            dense_array = X
+        return dense_array
 
 
 class MLP_1(nn.Module):
@@ -112,12 +116,12 @@ class PU_MLP(BaseEstimator, ClassifierMixin):
         torch.manual_seed(self.random_state) if self.random_state is not None else None
         np.random.seed(self.random_state) if self.random_state is not None else None
 
-        self.model = MLP_1(input_dim=input_dim).to(self.device)
-        # self.model = MLP(
-        #     input_dim=input_dim,
-        #     hidden_dims=self.hidden_dims,
-        #     dropout_rate=self.dropout_rate,
-        # ).to(self.device)
+        # self.model = MLP_1(input_dim=input_dim).to(self.device)
+        self.model = MLP(
+            input_dim=input_dim,
+            hidden_dims=self.hidden_dims,
+            dropout_rate=self.dropout_rate,
+        ).to(self.device)
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.criterion = PULoss(prior=self.prior, nnPU=self.nnPU)  # nn.BCELoss()  #
@@ -170,7 +174,7 @@ class PU_MLP(BaseEstimator, ClassifierMixin):
         )
 
         # Early stopping setup
-        best_val_loss = float("inf")
+        best_val_loss = -100000  # float("inf")
         no_improve_epochs = 0
         best_model_state = None
 
@@ -217,13 +221,17 @@ class PU_MLP(BaseEstimator, ClassifierMixin):
                     )
 
             # Check for early stopping
-            if val_loss < best_val_loss:
-                best_val_loss = val_loss
+            if f1_val > best_val_loss:
+                best_val_loss = f1_val
                 no_improve_epochs = 0
                 best_model_state = self.model.state_dict().copy()
             else:
+
                 no_improve_epochs += 1
                 if no_improve_epochs >= self.patience:
+                    print(
+                        f"Broke cause of patience: {no_improve_epochs} >= {self.patience}"
+                    )
                     break
 
         # Load best model
