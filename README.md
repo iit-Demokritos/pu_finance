@@ -1,6 +1,7 @@
 # PU Finance
 
 > PU learning methods for financial use cases.
+> 
 > Data for misstatement detection
 
 ## Data
@@ -14,7 +15,18 @@ For the corresponding training instances, positives examples that are supposed t
 Thus, for each training set, there are hidden positives into the negatives. The hidden positives are those having restatement date past the time of training.
 
 ## Install
+- Parts of the code rely on old versions of scikit-learn and python 3.8
+- Create a virtualev and install the requirements:
+```
+pip install requirements.txt
+```
+
 ### Setup Cython and compile
-- pip install the requirements
-- use setup.py to compile Cython files
+- The Hellinger distance trees require Cython
+- Use setup.py to compile Cython files:
+```
+python setup.py build_ext
+```
+The output build files will be placed in the build folder of the project.
+
 
