@@ -1,6 +1,5 @@
 import tqdm
 import os
-import numpy as np
 import time
 import pandas as pd
 
@@ -22,16 +21,12 @@ from sklearn.preprocessing import OneHotEncoder
 random_state = 42
 
 # which metadata to use
-metadata_to_use = ["CIK", "SIC", "State of Inc"]
+metadata_to_use = []  # ["CIK", "SIC", "State of Inc"]
 
-# drop rows with any NaN in train+test?
-# If we use meta-data have this as true for the time being
-# because many companies have no State for example
-drop_nan = True
 ###################
 
 # path to save results
-path_to_save_res = os.path.abspath("./results/rusboost_baseline_meta.csv")
+path_to_save_res = os.path.abspath("./results/rusboost.csv")
 # path to load data
 base_data_dir = os.path.abspath("./data")
 
@@ -43,7 +38,8 @@ results = []
 for folder in tqdm.tqdm(os.listdir(base_data_dir)):
     full_path = os.path.join(base_data_dir, folder)
     X_train, X_test, y_train, y_test = load_data_one_year(
-        full_path, metadata_to_use=metadata_to_use, drop_nan=drop_nan
+        full_path,
+        metadata_to_use=metadata_to_use,
     )
     # declare classifier
     clf = Pipeline(

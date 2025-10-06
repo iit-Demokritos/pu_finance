@@ -64,12 +64,14 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
             ),
             ("imp", SimpleImputer(strategy="mean")),
             ("sc", StandardScaler(with_mean=False)),
-            ('to_dense', DenseTransformer()),
+            ("to_dense", DenseTransformer()),
             (
                 "clf",
-                #DecisionTreeClassifier(random_state=random_state, max_depth=5),
-                PURF_SIMP(random_state=random_state, max_samples=np.count_nonzero(y_train == 0),
-                          pu_biased_bootstrap=True)
+                PURF_SIMP(
+                    random_state=random_state,
+                    max_samples=np.count_nonzero(y_train == 0),
+                    pu_biased_bootstrap=True,
+                ),
             ),
         ]
     )

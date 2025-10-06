@@ -1,6 +1,5 @@
 import tqdm
 import os
-import numpy as np
 import time
 import pandas as pd
 
@@ -8,10 +7,15 @@ from pu_finance.utils import load_data_one_year, METADATA_TO_USE
 from pu_finance.metrics import get_ranking_scores
 
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import f1_score
 from sklearn.tree import DecisionTreeClassifier
 
 from catboost import CatBoostClassifier
+
+
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
+from sklearn.compose import make_column_transformer
+from sklearn.preprocessing import OneHotEncoder
 
 
 ### SETTINGS ###
@@ -19,16 +23,13 @@ from catboost import CatBoostClassifier
 # for reproducibility
 random_state = 42
 # which metadata to use
-metadata_to_use = ["SIC", "State of Inc"]
-# drop rows with any NaN in train+test?
-# If we use meta-data have this as true for the time being
-# because many companies have no State for example
-drop_nan = True
+metadata_to_use = []  # ["CIK", "SIC", "State of Inc"]
+
 ###################
 
 
 # path to save results
-path_to_save_res = os.path.abspath("./results/catboost_baseline_meta_noCIK.csv")
+path_to_save_res = os.path.abspath("./results/catboost.csv")
 # path to load data
 base_data_dir = os.path.abspath("./data")
 
@@ -40,7 +41,8 @@ results = []
 for folder in tqdm.tqdm(os.listdir(base_data_dir)):
     full_path = os.path.join(base_data_dir, folder)
     X_train, X_test, y_train, y_test = load_data_one_year(
-        full_path, metadata_to_use=metadata_to_use, drop_nan=drop_nan
+        full_path,
+        metadata_to_use=metadata_to_use,
     )
 
     # use this for early stopping
@@ -48,18 +50,34 @@ for folder in tqdm.tqdm(os.listdir(base_data_dir)):
         X_train, y_train, test_size=0.1, stratify=y_train, random_state=random_state
     )
 
-    # You can change this @izavits to use focal loss
-    # Use scale_pos_weight = None, as this attribute is only for Logloss
-    loss = "Focal:focal_alpha=0.75;focal_gamma=1"
-    scale_pos_weight = None
+    # declare classifier
+    tr = Pipeline(
+        [
+            (
+                "tr",
+                make_column_transformer(
+                    [OneHotEncoder(handle_unknown="ignore"), cat_features],
+                    remainder="passthrough",
+                ),
+            ),
+            ("imp", SimpleImputer(strategy="mean")),
+        ]
+    )
+    cur_X_train = tr.fit_transform(cur_X_train)
+    cur_X_val = tr.transform(cur_X_val)
+    X_test = tr.transform(X_test)
+
+    # # Use scale_pos_weight = None, as this attribute is only for Logloss
+    # loss = "Focal:focal_alpha=0.75;focal_gamma=1"
+    # scale_pos_weight = None
 
     # # This is the Default
-    # loss = "Logloss"
-    # scale_pos_weight = 2
+    loss = "Logloss"
+    scale_pos_weight = 2
 
     clf = CatBoostClassifier(
         # these are CIK, SIC, State of Inc
-        cat_features=cat_features,
+        # cat_features=cat_features,
         # the loss function to use. Default is 'Logloss'.
         loss_function=loss,
         scale_pos_weight=scale_pos_weight,
