@@ -30,3 +30,8 @@ python setup.py build_ext
 The output build files will be placed in the build folder of the project.
 
 
+## How to cite:
+```
+Elias Zavitsanos, Konstantinos Bougiatiotis, Andreas Sideras, Georgios Paliouras. Positive-Unlabeled Learning for Financial Misstatement Detection under Realistic Constraints. International Conference on AI in Finance (ICAIF), 2025.
+```
+
